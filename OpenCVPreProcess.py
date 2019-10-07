@@ -12,14 +12,15 @@ class OpenCVPreProcess(object):
     def convert_hls(self, image):
         return cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
 
+    #Parameters need to be updated
     def select_white_yellow(self, image):
         # white color mask
-        lower = np.uint8([  0, 200,   0])
+        lower = np.uint8([140, 140, 140])
         upper = np.uint8([255, 255, 255])
         white_mask = cv2.inRange(image, lower, upper)
         # yellow color mask
-        lower = np.uint8([ 10,   0, 100])
-        upper = np.uint8([ 40, 255, 255])
+        lower = np.uint8([25, 110, 30])
+        upper = np.uint8([70, 160, 70])
         yellow_mask = cv2.inRange(image, lower, upper)
         # combine the mask
         mask = cv2.bitwise_or(white_mask, yellow_mask)
@@ -48,17 +49,21 @@ class OpenCVPreProcess(object):
             cv2.fillPoly(mask, vertices, (255,)*mask.shape[2]) # in case, the input image has a channel dimension        
         return cv2.bitwise_and(image, mask)
 
-    
+    #Parameters need to be updated
     def select_region(self, image):
         """
         It keeps the region surrounded by the `vertices` (i.e. polygon).  Other area is set to 0 (black).
         """
         # first, define the polygon by vertices
         rows, cols = image.shape[:2]
-        bottom_left  = [cols*0.1, rows*0.95]
-        top_left     = [cols*0.4, rows*0.6]
-        bottom_right = [cols*0.9, rows*0.95]
-        top_right    = [cols*0.6, rows*0.6] 
+        # bottom_left  = [cols*0.1, rows*0.95]
+        # top_left     = [cols*0.4, rows*0.6]
+        # bottom_right = [cols*0.9, rows*0.95]
+        # top_right    = [cols*0.6, rows*0.6] 
+        bottom_left  = [cols*0, rows*0.7]
+        top_left     = [cols*0, rows*0]
+        bottom_right = [cols*1, rows*0.7]
+        top_right    = [cols*1, rows*0] 
         # the vertices are an array of polygons (i.e array of arrays) and the data type must be integer
         vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)
         return self.filter_region(image, vertices)
@@ -148,13 +153,13 @@ class OpenCVPreProcess(object):
     def run(self, image):
         try:
             image = self.convert_hls(image) # Convert image to HLS color space
-            image = self.select_white_yellow(image) #Select the white and yellow lines
-            image = self.convert_gray_scale(image) #Convert Image to gray scale
-            image = self.apply_smoothing(image) # Apply a smoothing filter
-            image = self.detect_edges(image) #Perform Canny edge detection
+            # image = self.select_white_yellow(image) #Select the white and yellow lines
+            # image = self.convert_gray_scale(image) #Convert Image to gray scale
+            # image = self.apply_smoothing(image) # Apply a smoothing filter
+            # image = self.detect_edges(image) #Perform Canny edge detection
             image = self.select_region(image) #Region of Interest Selection
-            lines =  self.hough_lines(image) # Apply a Hough Transform
-            image = self.draw_lane_lines(image, self.lane_lines(image, lines)) #Draw the lines on the original image
+            # lines =  self.hough_lines(image) # Apply a Hough Transform
+            # image = self.draw_lane_lines(image, self.lane_lines(image, lines)) #Draw the lines on the original image
             return image
         except:
             return image
