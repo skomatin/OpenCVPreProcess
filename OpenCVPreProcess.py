@@ -153,13 +153,13 @@ class OpenCVPreProcess(object):
     def run(self, image):
         try:
             image = self.convert_hls(image) # Convert image to HLS color space
-            # image = self.select_white_yellow(image) #Select the white and yellow lines
-            # image = self.convert_gray_scale(image) #Convert Image to gray scale
-            # image = self.apply_smoothing(image) # Apply a smoothing filter
-            # image = self.detect_edges(image) #Perform Canny edge detection
+            image = self.select_white_yellow(image) #Select the white and yellow lines
+            image = self.convert_gray_scale(image) #Convert Image to gray scale
+            image = self.apply_smoothing(image) # Apply a smoothing filter
+            image = self.detect_edges(image) #Perform Canny edge detection
             image = self.select_region(image) #Region of Interest Selection
-            # lines =  self.hough_lines(image) # Apply a Hough Transform
-            # image = self.draw_lane_lines(image, self.lane_lines(image, lines)) #Draw the lines on the original image
+            lines =  self.hough_lines(image) # Apply a Hough Transform
+            image = self.draw_lane_lines(image, self.lane_lines(image, lines)) #Draw the lines on the original image
             return image
         except:
             return image
