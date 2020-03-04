@@ -21,11 +21,9 @@
 # 
 # #CAMERA
 CAMERA_TYPE = "WEBCAM"   # (PICAM|WEBCAM|CVCAM|CSIC|V4L|MOCK)
-# NOTE: IMAGE_W is derived on loading the config based on the aspect_ratio!!!
-# IMAGE_W = None
-IMAGE_H = 240
-IMAGE_ASPECT_RATIO = 16 / 9
-
+IMAGE_W = 160
+IMAGE_H = 120
+# IMAGE_ASPECT_RATIO = 16 / 9
 # IMAGE_DEPTH = 3         # default RGB=3, make 1 for mono
 # CAMERA_FRAMERATE = DRIVE_LOOP_HZ
 # # For CSIC camera - If the camera is mounted in a rotated position, changing the below parameter will correct the output frame orientation
@@ -44,14 +42,14 @@ PCA9685_I2C_BUSNUM = 1   #None will auto detect, which is fine on the pi. But ot
 # 
 # #STEERING
 STEERING_CHANNEL = 1            #channel on the 9685 pwm board 0-15
-STEERING_LEFT_PWM = 270         #pwm value for full left steering
-STEERING_RIGHT_PWM = 470        #pwm value for full right steering
+STEERING_LEFT_PWM = 480        #pwm value for full left steering
+STEERING_RIGHT_PWM = 220        #pwm value for full right steering
 # 
 # #THROTTLE
-THROTTLE_CHANNEL = 2            #channel on the 9685 pwm board 0-15
-THROTTLE_FORWARD_PWM = 400      #pwm value for max forward throttle
-THROTTLE_STOPPED_PWM = 370      #pwm value for no movement
-THROTTLE_REVERSE_PWM = 340      #pwm value for max reverse throttle
+THROTTLE_CHANNEL = 3            #channel on the 9685 pwm board 0-15
+THROTTLE_FORWARD_PWM = 500      #pwm value for max forward throttle
+THROTTLE_STOPPED_PWM = 400      #pwm value for no movement
+THROTTLE_REVERSE_PWM = 240      #pwm value for max reverse throttle
 # 
 # #DC_STEER_THROTTLE with one motor as steering, one as drive
 # #these GPIO pinouts are only used for the DRIVE_TRAIN_TYPE=DC_STEER_THROTTLE
@@ -66,49 +64,8 @@ THROTTLE_REVERSE_PWM = 340      #pwm value for max reverse throttle
 # HBRIDGE_PIN_LEFT_BWD = 16
 # HBRIDGE_PIN_RIGHT_FWD = 15
 # HBRIDGE_PIN_RIGHT_BWD = 13
-#
-# OPENCV-PIPELINE
-USE_OPENCV = False                        # boolean flag for whether images are preprocessed using opencv
-CV_STORE = False  # whether to store raw-image or pre-processed image (TRUE == store cv-processed image)
-CV_STORE_INF = False # whether to store "inference-input" during ai-mode for testing
-CV_PREPROCESSOR_TYPE = 'combined'     # describes type of pre-processing (canny | segmentation | combined)
-CV_TARGET_IMAGE_DEPTH = 3             # number of channel of target image
-CV_COLOR_MODE = 'indoor'  # mode for color segmentation (indoor | outdoor)
-
-# OPENCV COLOR SEGMENTATION SETTING - INDOOR
-# WHITE
-CV_WHITE_LOWER_IN = [140, 140, 140]
-CV_WHITE_UPPER_IN = [255, 255, 255]
-# YELLOW
-CV_YELLOW_LOWER_IN = [25, 110, 30]
-CV_YELLOW_UPPER_IN = [70, 160, 70]
-
-# OPENCV COLOR SEGMENTATION SETTING - OUTDOOR
-# WHITE
-CV_WHITE_LOWER_OUT = [170, 170, 170]
-CV_WHITE_UPPER_OUT = [255, 255, 255]
-# YELLOW
-CV_YELLOW_LOWER_OUT = [5, 100, 70]
-CV_YELLOW_UPPER_OUT = [20, 180, 170]
-
-# OPENCV CANNY SETTING
-CV_CANNY_MIN = 50
-CV_CANNY_MAX = 125
-CV_CANNY_APPLY_HOUGH = False
-CV_HOUGH_MIN_VOTES = 20
-CV_HOUGH_LINE_THICKNESS = 5
-CV_MIN_LINE_LENGTH = 5
-CV_MAX_LINE_GAP = 10
-
-# OPENCV ROI SELECTION SETTING
-CV_MAKE_COORDINATE_UPPER_LIMIT = 3 / 4
-CV_ROI_TYPE = 'crop'                # type of roi-operation (crop | mask | None)
-CV_ROI_Y_UPPER_EDGE = 65
-
-# OPENCV GAUSSIAN BLUR setting
-CV_GAUSSIAN_KERNEL = (5, 5)
-CV_GAUSSIAN_SIGMA = 0.0  # might be unnecessary at all, if 0 is being used
-
+# 
+# 
 # #TRAINING
 # #The DEFAULT_MODEL_TYPE will choose which model will be created at training time. This chooses
 # #between different neural network designs. You can override this setting by passing the command
@@ -146,7 +103,7 @@ CV_GAUSSIAN_SIGMA = 0.0  # might be unnecessary at all, if 0 is being used
 # # Region of interst cropping
 # # only supported in Categorical and Linear models.
 # # If these crops values are too large, they will cause the stride values to become negative and the model with not be valid.
-# ROI_CROP_TOP = 65                    #the number of rows of pixels to ignore on the top of the image
+# ROI_CROP_TOP = 0                    #the number of rows of pixels to ignore on the top of the image
 # ROI_CROP_BOTTOM = 0                 #the number of rows of pixels to ignore on the bottom of the image
 # 
 # #Model transfer options
@@ -157,14 +114,14 @@ CV_GAUSSIAN_SIGMA = 0.0  # might be unnecessary at all, if 0 is being used
 # 
 # 
 # #JOYSTICK
-USE_JOYSTICK_AS_DEFAULT = True #False     #when starting the manage.py, when True, will not require a --js option to use the joystick
-JOYSTICK_MAX_THROTTLE = 0.3         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
-JOYSTICK_STEERING_SCALE = 1.0       #some people want a steering that is less sensitve. This scalar is multiplied with the steering -1 to 1. It can be negative to reverse dir.
+USE_JOYSTICK_AS_DEFAULT = True     #when starting the manage.py, when True, will not require a --js option to use the joystick
+JOYSTICK_MAX_THROTTLE = 0.35         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
+# JOYSTICK_STEERING_SCALE = 1.0       #some people want a steering that is less sensitve. This scalar is multiplied with the steering -1 to 1. It can be negative to reverse dir.
 # AUTO_RECORD_ON_THROTTLE = True      #if true, we will record whenever throttle is not zero. if false, you must manually toggle recording with some other trigger. Usually circle button on joystick.
-CONTROLLER_TYPE='F710' #'ps3'               #(ps3|ps4|xbox|nimbus|wiiu|F710)
+CONTROLLER_TYPE='ps4'               #(ps3|ps4|xbox|nimbus|wiiu|F710)
 # USE_NETWORKED_JS = False            #should we listen for remote joystick control over the network?
 # NETWORK_JS_SERVER_IP = "192.168.0.1"#when listening for network joystick control, which ip is serving this information
-JOYSTICK_DEADZONE = 0.05             # when non zero, this is the smallest throttle before recording triggered.
+# JOYSTICK_DEADZONE = 0.0             # when non zero, this is the smallest throttle before recording triggered.
 # JOYSTICK_THROTTLE_DIR = -1.0        # use -1.0 to flip forward/backward, use 1.0 to use joystick's natural forward/backward
 # 
 # #For the categorical model, this limits the upper bound of the learned throttle
@@ -247,7 +204,7 @@ JOYSTICK_DEADZONE = 0.05             # when non zero, this is the smallest throt
 # 
 # #publish camera over network
 # #This is used to create a tcp service to pushlish the camera feed
-PUB_CAMERA_IMAGES = True
+# PUB_CAMERA_IMAGES = False
 # 
 # #When racing, to give the ai a boost, configure these values.
 # AI_LAUNCH_DURATION = 0.0            # the ai will output throttle for this many seconds
@@ -269,3 +226,46 @@ PUB_CAMERA_IMAGES = True
 # PID_THROTTLE = 0.2                  # constant throttle value during path following
 # SAVE_PATH_BTN = "cross"             # joystick button to save path
 # RESET_ORIGIN_BTN = "triangle"       # joystick button to press to move car back to origin
+
+# OPENCV-PIPELINE
+USE_OPENCV = True                        # boolean flag for whether images are preprocessed using opencv
+CV_STORE = True  # whether to store raw-image or pre-processed image (TRUE == store cv-processed image)
+CV_PREPROCESSOR_TYPE = 'combined_with_gray'     # describes type of pre-processing
+                                      # (canny | segmentation | combined | combined_with_gray)
+CV_TARGET_IMAGE_DEPTH = 3
+CV_STORE_INF = False # whether to store "inference-input" during ai-mode for testing
+CV_COLOR_MODE = 'indoor'  # mode for color segmentation (indoor | outdoor)
+
+# OPENCV COLOR SEGMENTATION SETTING - INDOOR
+# WHITE
+CV_WHITE_LOWER_IN = [140, 140, 140]
+CV_WHITE_UPPER_IN = [255, 255, 255]
+# YELLOW
+CV_YELLOW_LOWER_IN = [25, 110, 30]
+CV_YELLOW_UPPER_IN = [70, 160, 70]
+
+# OPENCV COLOR SEGMENTATION SETTING - OUTDOOR
+# WHITE
+CV_WHITE_LOWER_OUT = [170, 170, 170]
+CV_WHITE_UPPER_OUT = [255, 255, 255]
+# YELLOW
+CV_YELLOW_LOWER_OUT = [5, 100, 70]
+CV_YELLOW_UPPER_OUT = [20, 180, 170]
+
+# OPENCV CANNY SETTING
+CV_CANNY_MIN = 50
+CV_CANNY_MAX = 125
+CV_CANNY_APPLY_HOUGH = True
+CV_HOUGH_MIN_VOTES = 20
+CV_HOUGH_LINE_THICKNESS = 5
+CV_MIN_LINE_LENGTH = 5
+CV_MAX_LINE_GAP = 10
+
+# OPENCV ROI SELECTION SETTING
+CV_MAKE_COORDINATE_UPPER_LIMIT = 3 / 4
+CV_ROI_TYPE = 'crop'                # type of roi-operation (crop | mask | None)
+CV_ROI_Y_UPPER_EDGE = 65
+
+# OPENCV GAUSSIAN BLUR setting
+CV_GAUSSIAN_KERNEL = (5, 5)
+CV_GAUSSIAN_SIGMA = 0.0  # might be unnecessary at all, if 0 is being used

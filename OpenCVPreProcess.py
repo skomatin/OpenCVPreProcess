@@ -4,7 +4,7 @@ from utils import *
 from donkeycar.utils import img_crop
 
 
-class _OpenCvPreProcess:
+class _OpenCvPreProcessor:
     '''
     Abstract class of image processor
     Implement frame work of shutdown and run function as required by 
@@ -21,28 +21,28 @@ class _OpenCvPreProcess:
         raise NotImplementedError
 
 
-class OpenCvPreProcess:
+class OpenCvPreProcessor:
     """
-    preprocess-manager defining kind of pre-processing based 
+    preprocessor-manager defining kind of pre-processing based 
     on a string-argument loads corresponding class in init
     """
 
     def __init__(self, cfg):
         self.cfg = cfg
 
-        if cfg.CV_PREPROCESS_TYPE == 'canny':
+        if cfg.CV_PREPROCESSOR_TYPE == 'canny':
             assert cfg.CV_TARGET_IMAGE_DEPTH == 1
             self.processor = OpenCvCanny(cfg)
 
-        elif cfg.CV_PREPROCESS_TYPE == 'segmentation':
+        elif cfg.CV_PREPROCESSOR_TYPE == 'segmentation':
             assert cfg.CV_TARGET_IMAGE_DEPTH == 1
             self.processor = OpenCvColorSegmentation(cfg)
 
-        elif cfg.CV_PREPROCESS_TYPE == 'combined':
+        elif cfg.CV_PREPROCESSOR_TYPE == 'combined':
             assert cfg.CV_TARGET_IMAGE_DEPTH == 3
             self.processor = OpenCvCannyAndSegmentation(cfg)
 
-        elif cfg.CV_PREPROCESS_TYPE == 'combined_with_gray':
+        elif cfg.CV_PREPROCESSOR_TYPE == 'combined_with_gray':
             assert cfg.CV_TARGET_IMAGE_DEPTH == 3
             self.processor = OpenCvCannySegmentationAndGray(cfg)
 
@@ -60,13 +60,13 @@ class OpenCvPreProcess:
         self.processor.shutdown()
 
 
-class OpenCvCannyAndSegmentation(_OpenCvPreProcess):
+class OpenCvCannyAndSegmentation(_OpenCvPreProcessor):
     '''
     Convert original RGB image into three channel images with
     canny,white lines, and yellow lines
     
     Extends:
-        _OpenCvPreProcess
+        _OpenCvPreProcessor
     '''
     def __init__(self, cfg):
         super().__init__(cfg)
@@ -80,7 +80,7 @@ class OpenCvCannyAndSegmentation(_OpenCvPreProcess):
         return cv.merge([edges, white_mask, orange_mask])
 
 
-class OpenCvCannySegmentationAndGray(_OpenCvPreProcess):
+class OpenCvCannySegmentationAndGray(_OpenCvPreProcessor):
     def __init__(self, cfg):
         super().__init__(cfg)
         self.canny = OpenCvCanny(cfg)
@@ -94,12 +94,12 @@ class OpenCvCannySegmentationAndGray(_OpenCvPreProcess):
         return cv.merge([gray, edges, lane_mask])
 
 
-class OpenCvCanny(_OpenCvPreProcess):
+class OpenCvCanny(_OpenCvPreProcessor):
     '''
     Detect edges of image using canny filter
  
     Extends:
-        _OpenCvPreProcess
+        _OpenCvPreProcessor
     '''
     def __init__(self, cfg):
         super().__init__(cfg)
@@ -121,13 +121,13 @@ class OpenCvCanny(_OpenCvPreProcess):
         return edges_roi
 
 
-class OpenCvColorSegmentation(_OpenCvPreProcess):
+class OpenCvColorSegmentation(_OpenCvPreProcessor):
     '''
     Convert image to HSL color space and then segment white and
     yellow color.
 
     Extends:
-        _OpenCvPreProcess
+        _OpenCvPreProcessor
     '''
     def __init__(self, cfg, separate_masks=False):
         super().__init__(cfg)
