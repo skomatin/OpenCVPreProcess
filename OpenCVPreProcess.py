@@ -1,168 +1,164 @@
-import cv2
-import time
-import matplotlib.pyplot as plt
-import os, glob
+import cv2 as cv
 import numpy as np
+from utils import *
+from donkeycar.utils import img_crop
 
-class OpenCVPreProcess(object):
 
-    def __init__(self):
+class _OpenCvPreProcess:
+    '''
+    Abstract class of image processor
+    Implement frame work of shutdown and run function as required by 
+    Donkey car framework.
+    '''
+    def __init__(self, cfg):
+        self.cfg = cfg
         pass
-    
-    def convert_hls(self, image):
-        return cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-
-    #Parameters need to be updated
-    def select_white_yellow(self, image):
-        # white color mask
-        lower = np.uint8([140, 140, 140])
-        upper = np.uint8([255, 255, 255])
-        white_mask = cv2.inRange(image, lower, upper)
-        # yellow color mask
-        lower = np.uint8([25, 110, 30])
-        upper = np.uint8([70, 160, 70])
-        yellow_mask = cv2.inRange(image, lower, upper)
-        # combine the mask
-        mask = cv2.bitwise_or(white_mask, yellow_mask)
-        return cv2.bitwise_and(image, image, mask = mask)
-
-    def convert_gray_scale(self, image):
-        return cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-
-    def apply_smoothing(self, image, kernel_size=15):
-        """
-        kernel_size must be postivie and odd
-        """
-        return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
-
-    def detect_edges(self, image, low_threshold=50, high_threshold=150):
-        return cv2.Canny(image, low_threshold, high_threshold)
-
-    def filter_region(self, image, vertices):
-        """
-        Create the mask using the vertices and apply it to the input image
-        """
-        mask = np.zeros_like(image)
-        if len(mask.shape)==2:
-            cv2.fillPoly(mask, vertices, 255)
-        else:
-            cv2.fillPoly(mask, vertices, (255,)*mask.shape[2]) # in case, the input image has a channel dimension        
-        return cv2.bitwise_and(image, mask)
-
-    #Parameters need to be updated
-    def select_region(self, image):
-        """
-        It keeps the region surrounded by the `vertices` (i.e. polygon).  Other area is set to 0 (black).
-        """
-        # first, define the polygon by vertices
-        rows, cols = image.shape[:2]
-        # bottom_left  = [cols*0.1, rows*0.95]
-        # top_left     = [cols*0.4, rows*0.6]
-        # bottom_right = [cols*0.9, rows*0.95]
-        # top_right    = [cols*0.6, rows*0.6] 
-        bottom_left  = [cols*0, rows*0.7]
-        top_left     = [cols*0, rows*0]
-        bottom_right = [cols*1, rows*0.7]
-        top_right    = [cols*1, rows*0] 
-        # the vertices are an array of polygons (i.e array of arrays) and the data type must be integer
-        vertices = np.array([[bottom_left, top_left, top_right, bottom_right]], dtype=np.int32)
-        return self.filter_region(image, vertices)
-
-    def hough_lines(self, image):
-        """
-        `image` should be the output of a Canny transform.
-        
-        Returns hough lines (not the image with lines)
-        """
-        return cv2.HoughLinesP(image, rho=1, theta=np.pi/180, threshold=20, minLineLength=20, maxLineGap=300)
-    
-    def draw_lines(self, image, lines, color=[255, 0, 0], thickness=2, make_copy=True):
-        # the lines returned by cv2.HoughLinesP has the shape (-1, 1, 4)
-        if make_copy:
-            image = np.copy(image) # don't want to modify the original
-        for line in lines:
-            for x1,y1,x2,y2 in line:
-                cv2.line(image, (x1, y1), (x2, y2), color, thickness)
-        return image
-
-    def average_slope_intercept(self, lines):
-        left_lines    = [] # (slope, intercept)
-        left_weights  = [] # (length,)
-        right_lines   = [] # (slope, intercept)
-        right_weights = [] # (length,)
-        
-        for line in lines:
-            for x1, y1, x2, y2 in line:
-                if x2==x1:
-                    continue # ignore a vertical line
-                slope = (y2-y1)/(x2-x1)
-                intercept = y1 - slope*x1
-                length = np.sqrt((y2-y1)**2+(x2-x1)**2)
-                if slope < 0: # y is reversed in image
-                    left_lines.append((slope, intercept))
-                    left_weights.append((length))
-                else:
-                    right_lines.append((slope, intercept))
-                    right_weights.append((length))
-        
-        # add more weight to longer lines    
-        left_lane  = np.dot(left_weights,  left_lines) /np.sum(left_weights)  if len(left_weights) >0 else None
-        right_lane = np.dot(right_weights, right_lines)/np.sum(right_weights) if len(right_weights)>0 else None
-        
-        return left_lane, right_lane # (slope, intercept), (slope, intercept)
-
-    def make_line_points(self, y1, y2, line):
-        """
-        Convert a line represented in slope and intercept into pixel points
-        """
-        if line is None:
-            return None
-        
-        slope, intercept = line
-        
-        # make sure everything is integer as cv2.line requires it
-        x1 = int((y1 - intercept)/slope)
-        x2 = int((y2 - intercept)/slope)
-        y1 = int(y1)
-        y2 = int(y2)
-        
-        return ((x1, y1), (x2, y2))
-
-    def lane_lines(self, image, lines):
-        left_lane, right_lane = self.average_slope_intercept(lines)
-        
-        y1 = image.shape[0] # bottom of the image
-        y2 = y1*0.6         # slightly lower than the middle
-
-        left_line  = self.make_line_points(y1, y2, left_lane)
-        right_line = self.make_line_points(y1, y2, right_lane)
-        
-        return left_line, right_line
-
-    
-    def draw_lane_lines(self, image, lines, color=[255, 0, 0], thickness=20):
-        # make a separate image to draw lines and combine with the orignal later
-        line_image = np.zeros_like(image)
-        for line in lines:
-            if line is not None:
-                cv2.line(line_image, *line,  color, thickness)
-        # image1 * α + image2 * β + λ
-        # image1 and image2 must be the same shape.
-        return cv2.addWeighted(image, 1.0, line_image, 0.95, 0.0)
-    
-    def run(self, image):
-        try:
-            image = self.convert_hls(image) # Convert image to HLS color space
-            image = self.select_white_yellow(image) #Select the white and yellow lines
-            image = self.convert_gray_scale(image) #Convert Image to gray scale
-            image = self.apply_smoothing(image) # Apply a smoothing filter
-            image = self.detect_edges(image) #Perform Canny edge detection
-            image = self.select_region(image) #Region of Interest Selection
-            lines =  self.hough_lines(image) # Apply a Hough Transform
-            image = self.draw_lane_lines(image, self.lane_lines(image, lines)) #Draw the lines on the original image
-            return image
-        except:
-            return image
 
     def shutdown(self):
-        pass
+        return
+
+    def run(self, image_arr):
+        raise NotImplementedError
+
+
+class OpenCvPreProcess:
+    """
+    preprocess-manager defining kind of pre-processing based 
+    on a string-argument loads corresponding class in init
+    """
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+        if cfg.CV_PREPROCESS_TYPE == 'canny':
+            assert cfg.CV_TARGET_IMAGE_DEPTH == 1
+            self.processor = OpenCvCanny(cfg)
+
+        elif cfg.CV_PREPROCESS_TYPE == 'segmentation':
+            assert cfg.CV_TARGET_IMAGE_DEPTH == 1
+            self.processor = OpenCvColorSegmentation(cfg)
+
+        elif cfg.CV_PREPROCESS_TYPE == 'combined':
+            assert cfg.CV_TARGET_IMAGE_DEPTH == 3
+            self.processor = OpenCvCannyAndSegmentation(cfg)
+
+        elif cfg.CV_PREPROCESS_TYPE == 'combined_with_gray':
+            assert cfg.CV_TARGET_IMAGE_DEPTH == 3
+            self.processor = OpenCvCannySegmentationAndGray(cfg)
+
+        else:
+            raise NotImplementedError
+
+    def run(self, image_arr):
+        if image_arr is None:
+            return None
+
+        processed_image = self.processor.run(image_arr)
+        return processed_image
+
+    def shutdown(self):
+        self.processor.shutdown()
+
+
+class OpenCvCannyAndSegmentation(_OpenCvPreProcess):
+    '''
+    Convert original RGB image into three channel images with
+    canny,white lines, and yellow lines
+    
+    Extends:
+        _OpenCvPreProcess
+    '''
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self.canny = OpenCvCanny(cfg)
+        self.segmentation = OpenCvColorSegmentation(cfg, separate_masks=True)
+
+    def run(self, image_arr):
+        edges = self.canny.run(image_arr)
+        white_mask, orange_mask = self.segmentation.run(image_arr)
+
+        return cv.merge([edges, white_mask, orange_mask])
+
+
+class OpenCvCannySegmentationAndGray(_OpenCvPreProcess):
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self.canny = OpenCvCanny(cfg)
+        self.segmentation = OpenCvColorSegmentation(cfg, separate_masks=False)
+
+    def run(self, image_arr):
+        edges = self.canny.run(image_arr)
+        lane_mask = self.segmentation.run(image_arr)
+        gray = cv.cvtColor(image_arr, cv.COLOR_RGB2GRAY)
+
+        return cv.merge([gray, edges, lane_mask])
+
+
+class OpenCvCanny(_OpenCvPreProcess):
+    '''
+    Detect edges of image using canny filter
+ 
+    Extends:
+        _OpenCvPreProcess
+    '''
+    def __init__(self, cfg):
+        super().__init__(cfg)
+
+    def run(self, image_arr):
+        canny_edges = apply_canny(image_arr, self.cfg)
+
+        if self.cfg.CV_ROI_TYPE == 'mask':
+            edges_roi = region_of_interest(canny_edges, self.cfg)
+        else:
+            edges_roi = canny_edges
+
+        if self.cfg.CV_CANNY_APPLY_HOUGH:
+            lines = cv.HoughLinesP(edges_roi, 1, np.pi / 180, self.cfg.CV_HOUGH_MIN_VOTES, np.array([]),
+                                   minLineLength=self.cfg.CV_MIN_LINE_LENGTH,
+                                   maxLineGap=self.cfg.CV_MAX_LINE_GAP)
+            edges_roi = create_line_image(np.zeros_like(edges_roi), lines, self.cfg)
+
+        return edges_roi
+
+
+class OpenCvColorSegmentation(_OpenCvPreProcess):
+    '''
+    Convert image to HSL color space and then segment white and
+    yellow color.
+
+    Extends:
+        _OpenCvPreProcess
+    '''
+    def __init__(self, cfg, separate_masks=False):
+        super().__init__(cfg)
+        self.separate_masks = separate_masks
+
+        if cfg.CV_COLOR_MODE == 'indoor':
+            self.white_lower = np.array(cfg.CV_WHITE_LOWER_IN)
+            self.white_upper = np.array(cfg.CV_WHITE_UPPER_IN)
+
+            self.orange_lower = np.array(cfg.CV_YELLOW_LOWER_IN)
+            self.orange_upper = np.array(cfg.CV_YELLOW_UPPER_IN)
+
+        elif cfg.CV_COLOR_MODE == 'outdoor':
+            self.white_lower = np.array(cfg.CV_WHITE_LOWER_OUT)
+            self.white_upper = np.array(cfg.CV_WHITE_UPPER_OUT)
+
+            self.orange_lower = np.array(cfg.CV_YELLOW_LOWER_OUT)
+            self.orange_upper = np.array(cfg.CV_YELLOW_UPPER_OUT)
+
+    def run(self, image_arr):
+        conv_img = rgb_to_hls(image_arr)
+
+        if self.cfg.CV_ROI_TYPE == 'mask':
+            conv_img = region_of_interest(conv_img, self.cfg)
+
+        white_mask = create_color_mask(image_arr, self.white_lower, self.white_upper)
+        orange_mask = create_color_mask(conv_img, self.orange_lower, self.orange_upper)
+
+        if self.separate_masks:
+            return_mask = white_mask, orange_mask
+        else:
+            return_mask = cv.bitwise_or(white_mask, orange_mask)
+
+        return return_mask
